@@ -6,6 +6,19 @@
     <title>Heladería</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
+
+        .button {
+            padding: 10px 20px;
+            margin: 10px;
+            text-decoration: none;
+            border: 1px solid black;
+            background-color: #a5aaa5;
+            color: white;
+            border-radius: 5px;
+        }
+        .productos {
+        background-color: #1979b9; 
+    }
         body {
             background-color: #f4f4f4;
         }
@@ -42,14 +55,17 @@
             <a href="/productos" class="btn btn-success mx-2">Ver Productos</a>
         -->
         
-        <a href="/login">Ir a Login</a>
+        <a href="{{ url_for('login') }}" class="button logout">Ir a Login</a>
         <br>
         <br>
         <br>
         <br>
         <br>
-        <a href="/prueba">PRUEBA</a>
+        <br>
 
+        <a href="{{ url_for('productoslist') }}" class="button productos">Consultar Productos</a>
+
+        
         
         </div>
     </div>

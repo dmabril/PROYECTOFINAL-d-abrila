@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .button {
+            padding: 10px 20px;
+            margin: 10px;
+            text-decoration: none;
+            border: 1px solid black;
+            background-color: #a5aaa5;
+            color: white;
+            border-radius: 5px;
+        }
+        .salir {
+        background-color: #1979b9; }
+
+        .menu li {
+            list-style: none;
+            margin-bottom: 10px;
+        }
+
+        .menu a {
+            text-decoration: none;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bienvenido, {{ username }}</h1>
+
+    <br>
+    <br>
+    <br>
+    <br>
+
+
+    <!-- Botones de sesión -->
+    <div>
+        <ul class="menu">
+
+        <a href="{{ url_for('productosempleado') }}" class="button logout">Productos</a>
+        <a href="{{ url_for('ingredientesadmin') }}" class="button logout">Ingredientes</a>
+
+
+        </ul>
+       
+        <br>
+        <br>
+        <br>   
+        <a href="{{ url_for('logout') }}" class="button salir">Salir</a>
+    </div>
+
+</body>
+</html>

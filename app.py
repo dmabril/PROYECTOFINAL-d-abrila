@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, jsonify, Blueprint
+from flask import Flask, render_template, redirect, url_for, request, jsonify, Blueprint,flash
 from flask_login import LoginManager, login_user, login_required, current_user, logout_user
 from models.usuario import Usuario
 from models.heladeria import Heladeria
@@ -9,8 +9,11 @@ from models.ventas import Ventas
 from funciones import conteo_calorias,validacion_sano, abastecer 
 from models import db
 from datetime import datetime
+import requests
 import os
-
+from sqlalchemy import func
+from flask import render_template, jsonify
+from babel.numbers import format_currency
 
 
 
@@ -54,30 +57,85 @@ def login():
 
     return render_template("login.html")
 
+@app.route('/ventas/resumen', methods=['GET'])
+def resumen_ventas():
+    resumen = db.session.query(
+        Productos.nombre,
+        Ventas.fecha_venta.label('fecha'),
+        func.sum(Ventas.cantidad_productos).label('cantidad_vendida'),
+        func.sum(Ventas.cantidad_productos * Ventas.precio_producto).label('total_venta')
+    ).join(Ventas, Ventas.id_producto == Productos.id_producto) \
+    .group_by(Productos.id_producto, Ventas.fecha_venta).all()
 
-@app.route('/prueba')
-def prueba():
-    return render_template('prueba.html')
+    return render_template('ventas_resumen.html', resumen=resumen)
 
-
-
-
-
-"""
 @app.route('/rutalogueada')
 @login_required
 def rutalogueada():
-    if current_user.es_admin:
-        return render_template("rutalogueada.html", username=current_user.username, users=Usuario.query.all())
+
+    productos = Productos.query.all()
     
-    return render_template("rutalogueada.html", username=current_user.username)
-"""
 
-@app.route('/rutalogueada')
+    if current_user.is_admin: 
+        return render_template("dashboardadmin.html", username=current_user.username, user=current_user, productos=productos)
+    elif current_user.is_empleado:
+        return render_template("dashboardempleado.html", username=current_user.username, user=current_user)
+    else:
+
+        return render_template("dashboardcliente.html", username=current_user.username, user=current_user, productos=productos)
+
+    
+
+@app.route('/noautorizado')
+def noautorizado():
+    return render_template('noautorizado.html')
+
+
+@app.route('/productoslist')
+#@login_required
+def productoslist():
+    productos = Productos.query.all() 
+    return render_template('productoslist.html', productos=productos)
+
+@app.route('/productosadmin')
 @login_required
-def rutalogueada():
-    # Now the template just uses current_user, which is guaranteed to be the logged-in user
-    return render_template("rutalogueada.html", username=current_user.username, user=current_user)
+def productosadmin():
+    productosadmin = Productos.query.all() 
+    return render_template('productosadmin.html', productosadmin=productosadmin)
+
+
+@app.route('/productosempleado')
+@login_required
+def productosempleado():
+    productosempleado = Productos.query.all() 
+    return render_template('productosempleado.html', productosempleado=productosempleado)
+
+
+@app.route('/productoscliente')
+@login_required
+def productoscliente():
+    productoscliente = Productos.query.all() 
+    return render_template('productoscliente.html', productoscliente=productoscliente)
+
+
+@app.route('/ingredientesadmin')
+@login_required
+def ingredientesadmin():
+    ingredientesadmin = Ingredientes.query.all() 
+    return render_template('ingredientesadmin.html', ingredientesadmin=ingredientesadmin)
+
+
+@app.route('/ingredientescliente')
+@login_required
+def ingredientescliente():
+    ingredientescliente = Ingredientes.query.all() 
+    return render_template('ingredientescliente.html', ingredientescliente=ingredientescliente)
+
+@app.route('/ventas')
+@login_required
+def ventas():
+    ventas = Ventas.query.all() 
+    return render_template('ventas.html', ventas=ventas)
 
 
 @app.route('/logout')
@@ -87,21 +145,9 @@ def logout():
     return redirect(url_for('index'))
 
 """
-@app.route('/noautorizado')
-@login_required
-def no_autorizado():
-    # If user doesn't have the required role or permission, show the unauthorized page
-    if not current_user.es_admin and not current_user.es_empleado:
-        logout_user()  # Log out the user if they don't have valid permissions
-        return render_template('noautorizado.html', message="You do not have permission to access this page.")
-    
-    # If the user is unauthorized but has a valid session, you could show a message, redirect, or handle differently.
-    return redirect(url_for('index'))
+if __name__ == '__main__':
+    app.run(debug=True)
 """
-
-
-
-
 #Consultar todos los productos
 @app.route('/api/heladeria/productos', methods=['GET'])
 def get_productos():
@@ -150,6 +196,7 @@ def get_producto_by_name(nombre):
         })
     else:
         return jsonify({"message": "Producto no encontrado"}), 404
+
 
 
 #Consultar las calorías de un producto según su ID
@@ -273,7 +320,14 @@ def get_ingrediente_by_name(nombre):
         return jsonify({"message": "Ingrediente no encontrado"}), 404
 
 
-#Consultar si un ingrediente es sano según su ID
+@app.route('/api/heladeria/ingredientes/nombre/<string:nombre>', methods=['GET'])
+def buscar_por_nombre(nombre):
+    ingredientes = Ingredientes.query.filter(Ingredientes.nombre.ilike(f"%{nombre}%")).all()
+    if ingredientes:
+        return jsonify([ingrediente.to_dict() for ingrediente in ingredientes])
+    else:
+        return jsonify({"message": "Ingrediente no encontrado"}), 404
+
 @app.route('/api/heladeria/ingredientes/id_ingrediente/<int:id_ingrediente>/sano', methods=['GET'])
 def es_ingrediente_sano(id_ingrediente):
     ingrediente = Ingredientes.query.get(id_ingrediente)
@@ -289,9 +343,50 @@ def es_ingrediente_sano(id_ingrediente):
         
         es_sano = validacion_sano(numero_calorias, es_vegetarianos)
 
-        return jsonify({"es_sano": es_sano})
+        return jsonify({
+            "id_ingrediente": id_ingrediente,
+            "nombre": nombre,
+            "precio": precio,
+            "numero_calorias": numero_calorias,
+            "es_vegetariano": es_vegetarianos,
+            "sabor": sabor,
+            "tipo_ingrediente": tipo_ingrediente,
+            "inventario": inventario,
+            "es_sano": es_sano
+        })
     else:
         return jsonify({"message": "Ingrediente no encontrado"}), 404
+
+
+@app.route('/api/heladeria/ingredientes/nombre/<string:nombre>/sano', methods=['GET'])
+def es_ingrediente_sano_nombre(id_ingrediente):
+    ingrediente = Ingredientes.query.get(id_ingrediente)
+    
+    if ingrediente:
+        nombre = ingrediente.nombre
+        precio = ingrediente.precio
+        numero_calorias = ingrediente.numero_calorias
+        es_vegetarianos = ingrediente.es_vegetarianos
+        sabor = ingrediente.sabor
+        tipo_ingrediente = ingrediente.tipo_ingrediente
+        inventario = ingrediente.inventario
+        
+        es_sano = validacion_sano(numero_calorias, es_vegetarianos)
+
+        return jsonify({
+            "id_ingrediente": id_ingrediente,
+            "nombre": nombre,
+            "precio": precio,
+            "numero_calorias": numero_calorias,
+            "es_vegetariano": es_vegetarianos,
+            "sabor": sabor,
+            "tipo_ingrediente": tipo_ingrediente,
+            "inventario": inventario,
+            "es_sano": es_sano
+        })
+    else:
+        return jsonify({"message": "Ingrediente no encontrado"}), 404
+
 
 
 #Reabastecer un producto según su ID
@@ -363,22 +458,17 @@ def vender_producto(id_producto):
     }), 200
 
 
-
-
-
-
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all() 
 
         if not Usuario.query.first():   
             usuarios_iniciales = [
-                             Usuario(Id_usuario = 1, username="diana", password="123", es_admin=1, es_empleado=1),
-                             Usuario(Id_usuario = 2, username="lina", password="123", es_admin=0, es_empleado=1),
-                             Usuario(Id_usuario = 3, username="marcela", password="123", es_admin=0, es_empleado=0)
+                             Usuario(Id_usuario = 1, username="diana", password="123", is_admin=True, is_empleado=True),
+                             Usuario(Id_usuario = 2, username="lina", password="123", is_admin=False, is_empleado=True),
+                             Usuario(Id_usuario = 3, username="marcela", password="123", is_admin=False, is_empleado=False)
                          ]
-            db.session.add_all(usuarios_iniciales)  # Remove the outer list here
+            db.session.add_all(usuarios_iniciales)  
             db.session.commit()           
             
 

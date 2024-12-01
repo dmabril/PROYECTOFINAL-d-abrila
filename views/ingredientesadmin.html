@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingredientes Admin</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .button {
+            padding: 10px 20px;
+            margin: 10px;
+            text-decoration: none;
+            border: 1px solid black;
+            background-color: #a5aaa5;
+            color: white;
+            border-radius: 5px;
+        }
+        .volver {
+            background-color: #1979b9;
+        }
+        body {
+            background-color: #f4f4f4;
+        }
+        .main-container {
+            margin-top: 50px;
+        }
+        .btn-group {
+            margin-top: 30px;
+        }
+        .search-form {
+            margin-bottom: 30px;
+        }
+        .btn-primary {
+            background-color: #74787c;
+            border-color: #74787c;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        .table td, .table th {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Ingredientes</h1>
+
+        <!-- Formulario de búsqueda por ID -->
+        <form class="search-form" id="searchByIdForm">
+            <div class="form-row">
+                <div class="col">
+                    <input type="number" class="form-control" id="searchById" placeholder="Buscar por ID de ingrediente">
+                </div>
+                <div class="col">
+                    <button type="submit" class="btn btn-primary">Buscar por ID</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Formulario de búsqueda por Nombre -->
+        <form class="search-form" id="searchByNameForm">
+            <div class="form-row">
+                <div class="col">
+                    <input type="text" class="form-control" id="searchByName" placeholder="Buscar por nombre de ingrediente">
+                </div>
+                <div class="col">
+                    <button type="submit" class="btn btn-primary">Buscar por Nombre</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Tabla para mostrar ingredientes -->
+        <table class="table" id="ingredientesTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Numero Calorias</th>
+                    <th>Es Vegetariano</th>
+                    <th>Sabor</th>
+                    <th>Tipo Ingrediente</th>
+                    <th>Inventario</th>
+                    <th>Sano</th>
+                    <th>Acciones</th> 
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <a href="{{ url_for('rutalogueada') }}" class="button volver">Volver</a>
+        <a href="{{ url_for('index') }}" class="button volver">Salir</a>
+    </div>
+
+    <script>
+        // Mostrar ingredientes en la tabla
+        function mostrarIngredientes(ingredientes) {
+            const tbody = document.getElementById('ingredientesTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = ''; // Limpiar la tabla antes de agregar los nuevos ingredientes
+
+            if (ingredientes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10">No se encontraron ingredientes.</td></tr>';
+            } else {
+                ingredientes.forEach(ingrediente => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td>${ingrediente.id_ingrediente}</td>
+                        <td>${ingrediente.nombre}</td>
+                        <td>${ingrediente.precio}</td>
+                        <td>${ingrediente.numero_calorias}</td>
+                        <td>${ingrediente.es_vegetarianos == 1 ? 'Sí' : 'No'}</td>
+                        <td>${ingrediente.sabor}</td>
+                        <td>${ingrediente.tipo_ingrediente}</td>
+                        <td>${parseFloat(ingrediente.inventario).toFixed(2)}</td>
+                        <td id="sano-${ingrediente.id_ingrediente}">Cargando...</td>
+                        <td>
+                            <button class="btn btn-success" onclick="abastecerIngrediente(${ingrediente.id_ingrediente})">Abastecer</button>
+                        </td>
+                    `;
+
+                    // Obtener la información adicional de "Sano" para este ingrediente
+                    fetch(`/api/heladeria/ingredientes/id_ingrediente/${ingrediente.id_ingrediente}/sano`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const sanoCell = document.getElementById(`sano-${ingrediente.id_ingrediente}`);
+                            sanoCell.textContent = data.es_sano ? 'Sí' : 'No'; // Muestra si es sano o no
+                        })
+                        .catch(() => {
+                            const sanoCell = document.getElementById(`sano-${ingrediente.id_ingrediente}`);
+                            sanoCell.textContent = 'No disponible'; // Si falla la API
+                        });
+                });
+            }
+        }
+
+        // Función para abastecer un ingrediente
+        function abastecerIngrediente(id_ingrediente) {
+            fetch(`/api/heladeria/ingredientes/id_ingrediente/${id_ingrediente}/abastecer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message); // Mostrar mensaje de éxito o error
+                }
+                // Actualizar la tabla después de abastecer
+                fetch('/api/heladeria/ingredientes')
+                    .then(response => response.json())
+                    .then(data => {
+                        mostrarIngredientes(data.ingredientes); // Mostrar todos los ingredientes
+                    });
+            })
+            .catch(error => {
+                console.error('Error abasteciendo ingrediente:', error);
+                alert('Hubo un error al abastecer el ingrediente');
+            });
+        }
+
+        // Function to perform the search by ID
+        document.getElementById('searchByIdForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const id = document.getElementById('searchById').value;
+
+            if (id) {
+                fetch(`/api/heladeria/ingredientes/id_ingrediente/${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            mostrarIngredientes([]); // Producto no encontrado
+                        } else {
+                            mostrarIngredientes([data]); // Mostrar producto encontrado
+                        }
+                    });
+            } else {
+                // Si no hay ID, mostrar todos los productos
+                fetch('/api/heladeria/ingredientes')
+                    .then(response => response.json())
+                    .then(data => {
+                        mostrarIngredientes(data.ingredientes); // Mostrar todos los ingredientes
+                    });
+            }
+        });
+
+        // Function to perform the search by Name
+        document.getElementById('searchByNameForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const nombre = document.getElementById('searchByName').value.trim();
+
+            if (nombre === "") {
+                mostrarIngredientes([]); // No se ingresó nombre, mostrar sin ingredientes
+                return;
+            }
+
+            fetch(`/api/heladeria/ingredientes/nombre/${nombre}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message === "Ingrediente no encontrado") {
+                        mostrarIngredientes([]); // No se encontró ingrediente
+                    } else {
+                        mostrarIngredientes([data]); // Mostrar producto encontrado
+                    }
+                })
+                .catch(error => {
+                    console.error('Error buscando producto:', error);
+                    mostrarIngredientes([]); // Si hay error, mostrar sin ingredientes
+                });
+        });
+
+        // Cargar todos los ingredientes al inicio
+        fetch('/api/heladeria/ingredientes')
+            .then(response => response.json())
+            .then(data => {
+                mostrarIngredientes(data.ingredientes); // Mostrar todos los ingredientes
+            });
+    </script>
+</body>
+</html>

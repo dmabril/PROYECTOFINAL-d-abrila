@@ -1,0 +1,244 @@
+<!DOCTYPE html>  
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .button {
+            padding: 10px 20px;
+            margin: 10px;
+            text-decoration: none;
+            border: 1px solid black;
+            background-color: #a5aaa5;
+            color: white;
+            border-radius: 5px;
+        }
+        .volver {
+            background-color: #1979b9;
+        }
+        body {
+            background-color: #f4f4f4;
+        }
+        .main-container {
+            margin-top: 50px;
+        }
+        .btn-group {
+            margin-top: 30px;
+        }
+        .search-form {
+            margin-bottom: 30px;
+        }
+        .btn-primary {
+            background-color: #74787c; 
+            border-color: #74787c;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3; 
+            border-color: #0056b3;
+        }
+        .btn {
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Productos</h1>
+
+
+        <form class="search-form" id="searchByIdForm">
+            <div class="form-row">
+                <div class="col">
+                    <input type="number" class="form-control" id="searchById" placeholder="Buscar por ID de producto">
+                </div>
+                <div class="col">
+                    <button type="submit" class="btn btn-primary">Buscar por ID</button>
+                </div>
+            </div>
+        </form>
+
+
+        <form class="search-form" id="searchByNameForm">
+            <div class="form-row">
+                <div class="col">
+                    <input type="text" class="form-control" id="searchByName" placeholder="Buscar por nombre de producto">
+                </div>
+                <div class="col">
+                    <button type="submit" class="btn btn-primary">Buscar por Nombre</button>
+                </div>
+            </div>
+        </form>
+
+
+        <table class="table" id="productosTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Tipo Vaso</th>
+                    <th>Volumen</th>
+                    <th>Tipo Producto</th>
+                    <th>Calorías</th>
+                    <th>Costo Produccion</th>
+                    <th>Acción</th> 
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <br>
+        <br>
+        <br>
+        <a href="{{ url_for('rutalogueada') }}" class="button volver">Volver</a>
+        <br>
+        <br>
+        <br>
+        <a href="{{ url_for('index') }}" class="button volver">Salir</a>
+    </div>
+
+    <script>
+
+        function mostrarProductos(productos) {
+            const tbody = document.getElementById('productosTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = ''; 
+
+            if (productos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No se encontraron productos.</td></tr>';
+            } else {
+                productos.forEach(producto => {
+                    const row = tbody.insertRow();
+
+                    row.innerHTML = `
+                        <td>${producto.id_producto}</td>
+                        <td>${producto.nombre}</td>
+                        <td>${producto.precio}</td>
+                        <td>${producto.tipo_vaso}</td>
+                        <td>${producto.volumen}</td>
+                        <td>${producto.tipo_producto}</td>
+                        <td id="calorias-${producto.id_producto}">Cargando...</td>
+                        <td id="costo-${producto.id_producto}">Cargando...</td>
+                        <td><button class="btn btn-success" onclick="venderProducto(${producto.id_producto})">Vender</button></td>
+                    `;
+                    obtenerInfoAdicional(producto.id_producto); 
+                    obtenerCostoProduccion(producto.id_producto); 
+                });
+            }
+        }
+
+
+        function obtenerInfoAdicional(id_producto) {
+
+            fetch(`/api/heladeria/productos/id_producto/${id_producto}/calorias`)
+                .then(response => response.json())
+                .then(data => {
+                    const calorias = data.calorias_totales || 'No disponible';
+
+                    document.getElementById(`calorias-${id_producto}`).textContent = calorias;
+                })
+                .catch(() => {
+                    document.getElementById(`calorias-${id_producto}`).textContent = 'No disponible';
+                });
+        }
+
+
+        document.getElementById('searchByIdForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const id = document.getElementById('searchById').value;
+
+            if (id) {
+                fetch(`/api/heladeria/productos/id_producto/${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            mostrarProductos([]); 
+                        } else {
+                            mostrarProductos([data]); 
+                        }
+                    });
+            } else {
+
+                fetch('/api/heladeria/productos')
+                    .then(response => response.json())
+                    .then(data => {
+                        mostrarProductos(data.productos);
+                    });
+            }
+        });
+
+        document.getElementById('searchByNameForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            let nombre = document.getElementById('searchByName').value.trim();
+
+
+            if (nombre === "") {
+
+                mostrarProductos([]); 
+                return; 
+            }
+
+
+            nombre = nombre.toLowerCase(); 
+
+
+            fetch(`/api/heladeria/productos/nombre/${nombre}`)
+                .then(response => response.json())
+                .then(data => {
+
+                    if (data.message === "Producto no encontrado") {
+                        mostrarProductos([]); 
+                    } else {
+
+                        mostrarProductos([data]); 
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching product:', error);
+                    mostrarProductos([]); 
+                });
+        });
+
+
+        async function venderProducto(id_producto) {
+            try {
+                const response = await axios.post(`/api/heladeria/productos/id_producto/${id_producto}/vender`);
+                alert(response.data.message);
+
+
+                fetch('/api/heladeria/productos')
+                    .then(response => response.json())
+                    .then(data => {
+                        mostrarProductos(data.productos);
+                    });
+
+            } catch (error) {
+                alert('Hubo un error al realizar la venta: ' + error.response.data.message);
+            }
+        }
+
+
+        async function obtenerCostoProduccion(id_producto) {
+            try {
+                const costoResponse = await fetch(`/api/heladeria/productos/id_producto/${id_producto}/costo_produccion`);
+                const costoData = await costoResponse.json();
+
+                const costoProduccion = costoData.costo_produccion || 'No disponible';
+                document.getElementById(`costo-${id_producto}`).textContent = costoProduccion;
+            } catch {
+                document.getElementById(`costo-${id_producto}`).textContent = 'No disponible';
+            }
+        }
+
+
+        fetch('/api/heladeria/productos')
+            .then(response => response.json())
+            .then(data => {
+                mostrarProductos(data.productos);
+            });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</body>
+</html>

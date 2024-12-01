@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingredientes por Producto</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Ingredientes por Producto</h1>
+
+        <!-- Mostrar el Producto Más Rentable -->
+        <h2 class="mt-4">Producto Más Rentable</h2>
+        {% if producto_rentable %}
+            <div class="alert alert-success">
+                <strong>Producto:</strong> {{ producto_rentable.nombre }}<br>
+                <strong>Precio:</strong> ${{ producto_rentable.precio }}<br>
+                <strong>Costo de Producción:</strong> ${{ rentabilidad }}<br>
+                <strong>Rentabilidad:</strong> ${{ producto_rentable.precio - rentabilidad }}
+            </div>
+        {% else %}
+            <p>No se pudo determinar el producto más rentable.</p>
+        {% endif %}
+
+        <!-- Tabla de productos e ingredientes -->
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Producto</th>
+                    <th scope="col">Ingrediente</th>
+                    <th scope="col">Precio del Ingrediente</th>
+                    <th scope="col">Tipo de Ingrediente</th>
+                    <th scope="col">Es Vegetariano</th>
+                    <th scope="col">Costo de Producción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in productosingredientes %}
+                    <tr>
+                        <td>{{ item.producto.nombre }}</td>
+                        <td>{{ item.ingrediente.nombre }}</td>
+                        <td>${{ item.ingrediente.precio }}</td>
+                        <td>{{ item.ingrediente.tipo_ingrediente }}</td>
+                        <td>{{ 'Sí' if item.ingrediente.es_vegetariano else 'No' }}</td>
+                        <td>
+                            <!-- Mostrar el costo de producción al presionar el botón -->
+                            <button class="btn btn-info" onclick="mostrarCosto({{ item.id_producto }})">Mostrar Costo</button>
+                            <span id="costo-{{ item.id_producto }}" style="display:none;">${{ costos[item.id_producto] }}</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Botón de Volver -->
+        <a href="/" class="btn btn-secondary mt-3">Volver</a>
+    </div>
+
+    <script>
+        // Función para mostrar el costo al hacer clic en el botón
+        function mostrarCosto(productoId) {
+            // Obtén el span que contiene el costo de producción
+            var costoSpan = document.getElementById("costo-" + productoId);
+            if (costoSpan.style.display === "none") {
+                costoSpan.style.display = "inline";
+            } else {
+                costoSpan.style.display = "none";
+            }
+        }
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
