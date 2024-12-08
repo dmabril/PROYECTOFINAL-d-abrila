@@ -92,7 +92,7 @@ def noautorizado():
 
 
 @app.route('/productoslist')
-#@login_required
+@login_required
 def productoslist():
     productos = Productos.query.all() 
     return render_template('productoslist.html', productos=productos)
@@ -150,6 +150,7 @@ if __name__ == '__main__':
 """
 #Consultar todos los productos
 @app.route('/api/heladeria/productos', methods=['GET'])
+@login_required
 def get_productos():
     productos = Productos.query.all()  
     productos_list = [{
@@ -166,6 +167,7 @@ def get_productos():
 
 #Consultar un producto según su ID
 @app.route('/api/heladeria/productos/id_producto/<int:id_producto>', methods=['GET'])
+@login_required
 def get_producto_by_id(id_producto):
     producto = Productos.query.get(id_producto)  
     if producto:
@@ -183,6 +185,7 @@ def get_producto_by_id(id_producto):
 
 #Consultar un producto según su nombre
 @app.route('/api/heladeria/productos/nombre/<string:nombre>', methods=['GET'])
+@login_required
 def get_producto_by_name(nombre):
     producto = Productos.query.filter(Productos.nombre.ilike(f'%{nombre.strip()}%')).first()  
     if producto:
@@ -201,6 +204,7 @@ def get_producto_by_name(nombre):
 
 #Consultar las calorías de un producto según su ID
 @app.route('/api/heladeria/productos/id_producto/<int:id_producto>/calorias', methods=['GET'])
+@login_required
 def get_calorias(id_producto):
     # Llamar a la función para calcular las calorías totales del producto
     calorias_totales = conteo_calorias(id_producto)
@@ -214,6 +218,7 @@ def get_calorias(id_producto):
 
 #Consultar la rentabilidad de un producto según su ID
 @app.route('/api/heladeria/productos/id_producto/<int:id_producto>/rentabilidad', methods=['GET'])
+@login_required
 def get_rentabilidad(id_producto):
 
     producto = Productos.query.get(id_producto)
@@ -244,6 +249,7 @@ def get_rentabilidad(id_producto):
 
 #Consultar el costo de producción de un producto según su ID
 @app.route('/api/heladeria/productos/id_producto/<int:id_producto>/costo_produccion', methods=['GET'])
+@login_required
 def get_costo_produccion(id_producto):
     producto = Productos.query.get(id_producto)
     if producto:
@@ -266,6 +272,7 @@ def get_costo_produccion(id_producto):
 
 #Consultar todos los Ingredientes
 @app.route('/api/heladeria/ingredientes', methods=['GET'])
+@login_required
 def get_ingredientes():
     ingredientes = Ingredientes.query.all()  
     ingredientes_list = [{
@@ -284,6 +291,7 @@ def get_ingredientes():
 
 #Consultar un ingrediente según su ID
 @app.route('/api/heladeria/ingredientes/id_ingrediente/<int:id_ingrediente>', methods=['GET'])
+@login_required
 def get_ingrediente_by_id(id_ingrediente):
     ingrediente = Ingredientes.query.get(id_ingrediente)  
     if ingrediente:
@@ -303,6 +311,7 @@ def get_ingrediente_by_id(id_ingrediente):
 
 #Consultar un ingrediente según su nombre
 @app.route('/api/heladeria/ingredientes/nombre/<string:nombre>', methods=['GET'])
+@login_required
 def get_ingrediente_by_name(nombre):
     ingrediente = Ingredientes.query.filter(Ingredientes.nombre.ilike(f'%{nombre.strip()}%')).first()  
     if ingrediente:
@@ -321,6 +330,7 @@ def get_ingrediente_by_name(nombre):
 
 
 @app.route('/api/heladeria/ingredientes/nombre/<string:nombre>', methods=['GET'])
+@login_required
 def buscar_por_nombre(nombre):
     ingredientes = Ingredientes.query.filter(Ingredientes.nombre.ilike(f"%{nombre}%")).all()
     if ingredientes:
@@ -329,6 +339,7 @@ def buscar_por_nombre(nombre):
         return jsonify({"message": "Ingrediente no encontrado"}), 404
 
 @app.route('/api/heladeria/ingredientes/id_ingrediente/<int:id_ingrediente>/sano', methods=['GET'])
+@login_required
 def es_ingrediente_sano(id_ingrediente):
     ingrediente = Ingredientes.query.get(id_ingrediente)
     
@@ -359,6 +370,7 @@ def es_ingrediente_sano(id_ingrediente):
 
 
 @app.route('/api/heladeria/ingredientes/nombre/<string:nombre>/sano', methods=['GET'])
+@login_required
 def es_ingrediente_sano_nombre(id_ingrediente):
     ingrediente = Ingredientes.query.get(id_ingrediente)
     
@@ -391,6 +403,7 @@ def es_ingrediente_sano_nombre(id_ingrediente):
 
 #Reabastecer un producto según su ID
 @app.route('/api/heladeria/ingredientes/id_ingrediente/<int:id_ingrediente>/abastecer', methods=['POST'])
+@login_required
 def abastecer_ingrediente(id_ingrediente):
 
     ingrediente = Ingredientes.query.get(id_ingrediente)
@@ -406,6 +419,7 @@ def abastecer_ingrediente(id_ingrediente):
 
 
 @app.route('/api/heladeria/productos/id_producto/<int:id_producto>/vender', methods=['POST'])
+@login_required
 def vender_producto(id_producto):
     producto = Productos.query.get(id_producto)
     if not producto:
